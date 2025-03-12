@@ -33,6 +33,7 @@ jobs:
         uses: ./
         id: test_step
         with:
+          node-version: 20
         continue-on-error: true
       - name: Check that previous step failed
         if: steps.test_step.outcome == 'success'
