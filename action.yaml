@@ -1,0 +1,53 @@
+# Composite action to upload code coverage reports files to Datadog
+name: "Datadog Code Coverage Upload"
+description: "Upload code coverage reports files to Datadog"
+inputs:
+  api_key:
+    required: true
+    description: Datadog API key to use to upload the report files.
+  site:
+    required: false
+    default: datadoghq.com
+    description: The Datadog site to upload the files to.
+  files:
+    required: true
+    description: Report files to upload.
+    default: .
+  auto-discovery:
+    required: true
+    description: Do a recursive search and automatic report files discovery in the folders provided in `files` input (current folder if omitted).
+    default: 'true'
+  ignored-paths:
+    required: false
+    description: A comma-separated list of paths that are ignored when report files auto-discovery is done. Glob patterns are supported
+  node-version:
+    required: true
+    description: The node version used to install datadog-ci
+    default: "20"
+  datadog-ci-version:
+    required: false
+    description: The version of the @datadog/datadog-ci package to use. It defaults to the latest release (`latest`).
+    default: "latest"
+  extra-args:
+    default: ""
+    description: Extra args to be passed to the datadog-ci cli.
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Install node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Upload coverage report files
+      shell: bash
+      run: |
+        npx @datadog/datadog-ci@${{ inputs.datadog-ci-version}} coverage upload \
+          ${{ inputs.auto-discovery == 'false' && '--auto-discovery=false' || '' }} \
+          ${{ inputs.ignored-paths != '' && format('--ignored-paths {0}', inputs.ignored-paths) || '' }} \
+          ${{ inputs.extra-args }} \
+          ${{ inputs.files }}
+      env:
+        DD_API_KEY: ${{ inputs.api_key }}
+        DD_SITE: ${{ inputs.site }}
