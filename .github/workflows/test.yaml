@@ -15,7 +15,7 @@ jobs:
         version: [14, 16, 18, 20]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Upload reports using a glob pattern
         uses: ./
         with:
@@ -28,7 +28,7 @@ jobs:
   test-should-complain-about-missing-api-key:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Upload reports using a glob pattern
         uses: ./
         id: test_step
