@@ -1,39 +1,48 @@
-name: 'Test Action'
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/)
+# Copyright 2025-present Datadog, Inc.
+name: "Test Action"
 on:
   pull_request:
   push:
     branches:
       - main
-      - 'release/*'
+      - "release/*"
   schedule:
-    - cron: '0 0 * * *' # Runs at midnight UTC every day
+    - cron: "0 0 * * *" # Runs at midnight UTC every day
 
 jobs:
-  test:
+  test-upload:
     strategy:
       matrix:
-        version: [14, 16, 18, 20]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload reports
+        uses: ./
+        with:
+          api_key: ${{ secrets.DD_API_KEY_CI_VISIBILITY }}
+          ignored-paths: "**/subfolder"
+
+  test-pinned-version:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Upload reports using a glob pattern
+      - name: Upload reports with pinned datadog-ci version
         uses: ./
         with:
-          api_key: ${{secrets.DD_API_KEY_CI_VISIBILITY}}
-          ignored-paths: '**/subfolder'
-          node-version: ${{ matrix.version}}
-        env:
-          DD_API_KEY: ${{ secrets.DD_API_KEY_CI_VISIBILITY }}
+          api_key: ${{ secrets.DD_API_KEY_CI_VISIBILITY }}
+          version: "v5.6.0"
 
   test-should-complain-about-missing-api-key:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Upload reports using a glob pattern
+      - name: Upload reports without API key
         uses: ./
         id: test_step
-        with:
-          node-version: 20
         continue-on-error: true
       - name: Check that previous step failed
         if: steps.test_step.outcome == 'success'
