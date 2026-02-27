@@ -63,21 +63,24 @@ runs:
         if [[ -n "$FLAGS" ]]; then
           IFS=',' read -ra flag_items <<< "$FLAGS"
           for flag in "${flag_items[@]}"; do
-            flag=$(echo "$flag" | xargs)
+            # Trim leading/trailing whitespace without spawning a subprocess
+            flag="${flag#"${flag%%[![:space:]]*}"}"
+            flag="${flag%"${flag##*[![:space:]]}"}"
             if [[ -n "$flag" ]]; then
               flags_args+=" --flags $flag"
             fi
           done
         fi
 
-        optional_args=""
-        [[ -n "$IGNORED_PATHS" ]] && optional_args+=" --ignored-paths $IGNORED_PATHS"
-        [[ -n "$FORMAT" ]] && optional_args+=" --format $FORMAT"
-        [[ -n "$BASE_PATH" ]] && optional_args+=" --base-path $BASE_PATH"
+        # Use an array so values with spaces (e.g. base-path) are passed as single tokens
+        optional_args=()
+        [[ -n "$IGNORED_PATHS" ]] && optional_args+=(--ignored-paths "$IGNORED_PATHS")
+        [[ -n "$FORMAT" ]] && optional_args+=(--format "$FORMAT")
+        [[ -n "$BASE_PATH" ]] && optional_args+=(--base-path "$BASE_PATH")
 
-        # shellcheck disable=SC2086
+        # shellcheck disable=SC2086 -- intentional: word-split $flags_args, $EXTRA_ARGS, $FILES for multi-value expansion
         datadog-ci coverage upload \
-          $optional_args \
+          "${optional_args[@]}" \
           $flags_args \
           $EXTRA_ARGS \
           $FILES
