@@ -1,6 +1,12 @@
-# Composite action to upload code coverage reports files to Datadog
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/)
+# Copyright 2025-present Datadog, Inc.
 name: "Datadog Code Coverage Upload"
-description: "Upload code coverage reports files to Datadog"
+description: "Upload code coverage report files to Datadog"
+branding:
+  icon: "upload-cloud"
+  color: "purple"
 inputs:
   api_key:
     required: true
@@ -10,44 +16,77 @@ inputs:
     default: datadoghq.com
     description: The Datadog site to upload the files to.
   files:
-    required: true
-    description: Report files to upload.
+    required: false
+    description: >
+      Directories, files, or glob patterns used when looking for coverage report files.
+      If a folder is provided, it is searched recursively for supported coverage reports.
     default: .
-  auto-discovery:
-    required: true
-    description: Do a recursive search and automatic report files discovery in the folders provided in `files` input (current folder if omitted).
-    default: 'true'
   ignored-paths:
     required: false
-    description: A comma-separated list of paths that are ignored when report files auto-discovery is done. Glob patterns are supported
-  node-version:
-    required: true
-    description: The node version used to install datadog-ci
-    default: "20"
-  datadog-ci-version:
+    description: A comma-separated list of paths to exclude from report file discovery. Glob patterns are supported.
+  flags:
     required: false
-    description: The version of the @datadog/datadog-ci package to use. It defaults to the latest release (`latest`).
-    default: "latest"
+    description: >
+      Flags to mark coverage reports for grouping and filtering (e.g., "type:unit-tests,jvm-21").
+      A comma-separated list; maximum 32 flags per report.
+  format:
+    required: false
+    description: Override the format of the coverage report files (auto-detected by default).
+  base-path:
+    required: false
+    description: >
+      Base path (relative to repository root) for the file paths inside the coverage reports.
+      If not specified, paths are considered relative to repository root.
+  version:
+    required: false
+    description: >
+      Version of datadog-ci to install.
+      Use a major version like "v5" (default) to get the latest release within that major version.
+      Use a specific tag like "v5.6.0" to pin.
+    default: "v5"
   extra-args:
-    default: ""
-    description: Extra args to be passed to the datadog-ci cli.
     required: false
+    default: ""
+    description: Extra args to be passed to the datadog-ci coverage upload command.
 runs:
   using: "composite"
   steps:
-    - name: Install node
-      uses: actions/setup-node@v4
+    - name: Install datadog-ci
+      uses: DataDog/install-datadog-ci-github-action@v1
       with:
-        node-version: ${{ inputs.node-version }}
+        version: ${{ inputs.version }}
 
     - name: Upload coverage report files
       shell: bash
       run: |
-        npx @datadog/datadog-ci@${{ inputs.datadog-ci-version}} coverage upload \
-          ${{ inputs.auto-discovery == 'false' && '--auto-discovery=false' || '' }} \
-          ${{ inputs.ignored-paths != '' && format('--ignored-paths {0}', inputs.ignored-paths) || '' }} \
-          ${{ inputs.extra-args }} \
-          ${{ inputs.files }}
+        flags_args=""
+        if [[ -n "$FLAGS" ]]; then
+          IFS=',' read -ra flag_items <<< "$FLAGS"
+          for flag in "${flag_items[@]}"; do
+            flag=$(echo "$flag" | xargs)
+            if [[ -n "$flag" ]]; then
+              flags_args+=" --flags $flag"
+            fi
+          done
+        fi
+
+        optional_args=""
+        [[ -n "$IGNORED_PATHS" ]] && optional_args+=" --ignored-paths $IGNORED_PATHS"
+        [[ -n "$FORMAT" ]] && optional_args+=" --format $FORMAT"
+        [[ -n "$BASE_PATH" ]] && optional_args+=" --base-path $BASE_PATH"
+
+        # shellcheck disable=SC2086
+        datadog-ci coverage upload \
+          $optional_args \
+          $flags_args \
+          $EXTRA_ARGS \
+          $FILES
       env:
         DD_API_KEY: ${{ inputs.api_key }}
         DD_SITE: ${{ inputs.site }}
+        FLAGS: ${{ inputs.flags }}
+        IGNORED_PATHS: ${{ inputs.ignored-paths }}
+        FORMAT: ${{ inputs.format }}
+        BASE_PATH: ${{ inputs.base-path }}
+        EXTRA_ARGS: ${{ inputs.extra-args }}
+        FILES: ${{ inputs.files }}
