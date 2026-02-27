@@ -38,6 +38,17 @@ jobs:
           version: "v5.6.0"
           extra-args: "--dry-run"
 
+  test-flags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload reports with flags
+        uses: ./
+        with:
+          api_key: dummy-api-key-for-testing
+          flags: "type:unit-tests,jvm-21"
+          extra-args: "--dry-run"
+
   test-should-complain-about-missing-api-key:
     runs-on: ubuntu-latest
     steps:

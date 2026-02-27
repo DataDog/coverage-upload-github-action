@@ -70,14 +70,23 @@ runs:
           done
         fi
 
+        optional_args=""
+        [[ -n "$IGNORED_PATHS" ]] && optional_args+=" --ignored-paths $IGNORED_PATHS"
+        [[ -n "$FORMAT" ]] && optional_args+=" --format $FORMAT"
+        [[ -n "$BASE_PATH" ]] && optional_args+=" --base-path $BASE_PATH"
+
+        # shellcheck disable=SC2086
         datadog-ci coverage upload \
-          ${{ inputs.ignored-paths != '' && format('--ignored-paths {0}', inputs.ignored-paths) || '' }} \
-          ${{ inputs.format != '' && format('--format {0}', inputs.format) || '' }} \
-          ${{ inputs.base-path != '' && format('--base-path {0}', inputs.base-path) || '' }} \
+          $optional_args \
           $flags_args \
-          ${{ inputs.extra-args }} \
-          ${{ inputs.files }}
+          $EXTRA_ARGS \
+          $FILES
       env:
         DD_API_KEY: ${{ inputs.api_key }}
         DD_SITE: ${{ inputs.site }}
         FLAGS: ${{ inputs.flags }}
+        IGNORED_PATHS: ${{ inputs.ignored-paths }}
+        FORMAT: ${{ inputs.format }}
+        BASE_PATH: ${{ inputs.base-path }}
+        EXTRA_ARGS: ${{ inputs.extra-args }}
+        FILES: ${{ inputs.files }}
