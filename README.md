@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: make tests
-      - uses: DataDog/coverage-upload-github-action@v2
+      - uses: DataDog/coverage-upload-github-action@v1
         with:
           api_key: ${{ secrets.DD_API_KEY }}
 ```
@@ -25,7 +25,7 @@ jobs:
 ### Upload with flags
 
 ```yaml
-- uses: DataDog/coverage-upload-github-action@v2
+- uses: DataDog/coverage-upload-github-action@v1
   with:
     api_key: ${{ secrets.DD_API_KEY }}
     flags: "type:unit-tests,jvm-21"
@@ -34,7 +34,7 @@ jobs:
 ### Specify report files path
 
 ```yaml
-- uses: DataDog/coverage-upload-github-action@v2
+- uses: DataDog/coverage-upload-github-action@v1
   with:
     api_key: ${{ secrets.DD_API_KEY }}
     files: ./coverage
@@ -44,7 +44,7 @@ jobs:
 ### Pin a specific datadog-ci version
 
 ```yaml
-- uses: DataDog/coverage-upload-github-action@v2
+- uses: DataDog/coverage-upload-github-action@v1
   with:
     api_key: ${{ secrets.DD_API_KEY }}
     version: "v5.6.0"
@@ -62,7 +62,7 @@ jobs:
 | `format`        | Override the format of the coverage report files (auto-detected by default).                                           | No       |                 |
 | `base-path`     | Base path (relative to repo root) for the file paths inside the coverage reports.                                      | No       |                 |
 | `version`       | Version of `datadog-ci` to install. Use a major version like `v5` or a specific tag like `v5.6.0` to pin.             | No       | `v5`            |
-| `extra-args`    | Extra args to be passed to the `datadog-ci coverage upload` command.                                                   | No       |                 |
+| `extra-args`    | Extra args to be passed to the `datadog-ci coverage upload` command. See the [datadog-ci coverage upload docs](https://github.com/DataDog/datadog-ci/blob/master/packages/plugin-coverage/README.md) for available options. | No       |                 |
 
 ## Supported platforms
 
