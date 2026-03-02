@@ -1,0 +1,168 @@
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/)
+# Copyright 2025-present Datadog, Inc.
+
+# Tests that action inputs are correctly drilled through to the datadog-ci CLI
+# by replacing the real binary with a shim that asserts on the received arguments.
+name: Test argument drilling
+on: [push, pull_request]
+
+jobs:
+  test-arg-drilling:
+    runs-on: ubuntu-latest
+    env:
+      OVERRIDE_DATADOG_CI_PATH: /home/runner/shim-bin
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install datadog-ci shim
+        run: |
+          mkdir -p "$HOME/shim-bin"
+          cat > "$HOME/shim-bin/datadog-ci" << 'SHIM'
+          #!/bin/bash
+          echo "SHIM: datadog-ci called from $(which datadog-ci)"
+          echo "SHIM: received $# args: $*"
+          for arg in "$@"; do echo "ARG:[$arg]"; done > /tmp/actual-args.txt
+          if ! diff /tmp/expected-args.txt /tmp/actual-args.txt; then
+            echo "FAIL: argument mismatch (expected vs actual)"
+            exit 1
+          fi
+          SHIM
+          chmod +x "$HOME/shim-bin/datadog-ci"
+          echo "$HOME/shim-bin" >> "$GITHUB_PATH"
+
+      # -- Test: basic upload with ignored-paths --
+      - run: |
+          cat > /tmp/expected-args.txt << 'EOF'
+          ARG:[coverage]
+          ARG:[upload]
+          ARG:[--ignored-paths]
+          ARG:[**/subfolder]
+          ARG:[.]
+          EOF
+      - name: "Test: basic upload with ignored-paths"
+        uses: ./
+        with:
+          api_key: dummy-key
+
+          ignored-paths: "**/subfolder"
+
+      # -- Test: comma-separated flags with whitespace trimming --
+      - run: |
+          cat > /tmp/expected-args.txt << 'EOF'
+          ARG:[coverage]
+          ARG:[upload]
+          ARG:[--flags]
+          ARG:[type:unit-tests]
+          ARG:[--flags]
+          ARG:[jvm-21]
+          ARG:[--flags]
+          ARG:[my-flag]
+          ARG:[.]
+          EOF
+      - name: "Test: flags parsing"
+        uses: ./
+        with:
+          api_key: dummy-key
+
+          flags: "type:unit-tests, jvm-21 , my-flag"
+
+      # -- Test: all optional args --
+      - run: |
+          cat > /tmp/expected-args.txt << 'EOF'
+          ARG:[coverage]
+          ARG:[upload]
+          ARG:[--ignored-paths]
+          ARG:[**/test]
+          ARG:[--format]
+          ARG:[jacoco]
+          ARG:[--base-path]
+          ARG:[src/main]
+          ARG:[./reports]
+          EOF
+      - name: "Test: all optional args"
+        uses: ./
+        with:
+          api_key: dummy-key
+
+          ignored-paths: "**/test"
+          format: "jacoco"
+          base-path: "src/main"
+          files: "./reports"
+
+      # -- Test: base-path with spaces preserved as single token --
+      - run: |
+          cat > /tmp/expected-args.txt << 'EOF'
+          ARG:[coverage]
+          ARG:[upload]
+          ARG:[--base-path]
+          ARG:[my coverage folder]
+          ARG:[.]
+          EOF
+      - name: "Test: base-path with spaces"
+        uses: ./
+        with:
+          api_key: dummy-key
+
+          base-path: "my coverage folder"
+
+      # -- Test: extra-args pass-through --
+      - run: |
+          cat > /tmp/expected-args.txt << 'EOF'
+          ARG:[coverage]
+          ARG:[upload]
+          ARG:[--dry-run]
+          ARG:[--verbose]
+          ARG:[.]
+          EOF
+      - name: "Test: extra-args"
+        uses: ./
+        with:
+          api_key: dummy-key
+
+          extra-args: "--dry-run --verbose"
+
+      # -- Test: no optional args --
+      - run: |
+          cat > /tmp/expected-args.txt << 'EOF'
+          ARG:[coverage]
+          ARG:[upload]
+          ARG:[.]
+          EOF
+      - name: "Test: no optional args"
+        uses: ./
+        with:
+          api_key: dummy-key
+
+
+      # -- Test: everything combined --
+      - run: |
+          cat > /tmp/expected-args.txt << 'EOF'
+          ARG:[coverage]
+          ARG:[upload]
+          ARG:[--ignored-paths]
+          ARG:[**/vendor,**/test]
+          ARG:[--format]
+          ARG:[jacoco]
+          ARG:[--base-path]
+          ARG:[src/main]
+          ARG:[--flags]
+          ARG:[type:unit-tests]
+          ARG:[--flags]
+          ARG:[jvm-21]
+          ARG:[--dry-run]
+          ARG:[./reports]
+          ARG:[./coverage]
+          EOF
+      - name: "Test: everything combined"
+        uses: ./
+        with:
+          api_key: dummy-key
+
+          flags: "type:unit-tests, jvm-21"
+          ignored-paths: "**/vendor,**/test"
+          format: "jacoco"
+          base-path: "src/main"
+          extra-args: "--dry-run"
+          files: "./reports ./coverage"

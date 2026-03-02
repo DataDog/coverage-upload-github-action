@@ -56,6 +56,11 @@ runs:
       with:
         version: ${{ inputs.version }}
 
+    - name: Override datadog-ci path
+      if: env.OVERRIDE_DATADOG_CI_PATH != ''
+      shell: bash
+      run: echo "$OVERRIDE_DATADOG_CI_PATH" >> "$GITHUB_PATH"
+
     - name: Upload coverage report files
       shell: bash
       run: |
