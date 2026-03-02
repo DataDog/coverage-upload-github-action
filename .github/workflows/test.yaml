@@ -1,0 +1,59 @@
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/)
+# Copyright 2025-present Datadog, Inc.
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test-upload:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Matches the OS/arch combinations supported by the datadog-ci standalone binary
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-latest-large, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Upload reports
+        uses: ./
+        with:
+          api_key: dummy-api-key-for-testing
+          ignored-paths: "**/subfolder"
+          extra-args: "--dry-run"
+
+  test-pinned-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Upload reports with pinned datadog-ci version
+        uses: ./
+        with:
+          api_key: dummy-api-key-for-testing
+          version: "v5.6.0"
+          extra-args: "--dry-run"
+
+  test-flags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Upload reports with flags
+        uses: ./
+        with:
+          api_key: dummy-api-key-for-testing
+          flags: "type:unit-tests,jvm-21"
+          extra-args: "--dry-run"
+
+  test-should-complain-about-missing-api-key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Upload reports without API key
+        uses: ./
+        id: test_step
+        continue-on-error: true
+      - name: Check that previous step failed
+        if: steps.test_step.outcome == 'success'
+        run: |
+          echo "The previous step did not fail as expected"
+          exit 1
