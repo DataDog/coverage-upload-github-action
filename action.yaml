@@ -59,7 +59,7 @@ runs:
     - name: Upload coverage report files
       shell: bash
       run: |
-        flags_args=""
+        flags_args=()
         if [[ -n "$FLAGS" ]]; then
           IFS=',' read -ra flag_items <<< "$FLAGS"
           for flag in "${flag_items[@]}"; do
@@ -67,7 +67,7 @@ runs:
             flag="${flag#"${flag%%[![:space:]]*}"}"
             flag="${flag%"${flag##*[![:space:]]}"}"
             if [[ -n "$flag" ]]; then
-              flags_args+=" --flags $flag"
+              flags_args+=(--flags "$flag")
             fi
           done
         fi
@@ -78,10 +78,10 @@ runs:
         [[ -n "$FORMAT" ]] && optional_args+=(--format "$FORMAT")
         [[ -n "$BASE_PATH" ]] && optional_args+=(--base-path "$BASE_PATH")
 
-        # shellcheck disable=SC2086 -- intentional: word-split $flags_args, $EXTRA_ARGS, $FILES for multi-value expansion
+        # shellcheck disable=SC2086 -- intentional: word-split $EXTRA_ARGS, $FILES for multi-value expansion
         datadog-ci coverage upload \
           "${optional_args[@]}" \
-          $flags_args \
+          "${flags_args[@]}" \
           $EXTRA_ARGS \
           $FILES
       env:
