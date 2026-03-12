@@ -7,11 +7,11 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
-permissions:
-  contents: write # Required for pushing the floating major tag
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for creating the GitHub release
     steps:
       - name: Create GitHub Release
         env:
@@ -22,10 +22,22 @@ jobs:
   update-major-tag:
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC token exchange with dd-octo-sts
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: DataDog/dd-octo-sts-action@acaa02eee7e3bb0839e4272dacb37b8f3b58ba80 # v1.0.3
+        id: octo-sts
+        with:
+          scope: DataDog/coverage-upload-github-action
+          policy: self.release.update-major-tag
       - name: Update major version tag
         run: |
           major=$(echo "${GITHUB_REF_NAME}" | cut -d. -f1)
           git tag -f "$major" "$GITHUB_REF_NAME"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push -f origin "$major"
+        env:
+          GH_TOKEN: ${{ steps.octo-sts.outputs.token }}
