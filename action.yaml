@@ -52,7 +52,7 @@ runs:
   using: "composite"
   steps:
     - name: Install datadog-ci
-      uses: DataDog/install-datadog-ci-github-action@7960c07e413c56665e12346b34eec80089a7260e # v1.0.2
+      uses: DataDog/install-datadog-ci-github-action@4b24cd8614f96f36c45a6c10425ede3691de637d # v1.0.3
       with:
         version: ${{ inputs.version }}
 
