@@ -78,6 +78,8 @@ runs:
         [[ -n "$FORMAT" ]] && optional_args+=(--format "$FORMAT")
         [[ -n "$BASE_PATH" ]] && optional_args+=(--base-path "$BASE_PATH")
 
+        [[ -n "$DD_API_KEY_INPUT" ]] && export DD_API_KEY="$DD_API_KEY_INPUT"
+
         # shellcheck disable=SC2086 -- intentional: word-split $EXTRA_ARGS, $FILES for multi-value expansion
         datadog-ci coverage upload \
           "${optional_args[@]}" \
@@ -85,7 +87,7 @@ runs:
           $EXTRA_ARGS \
           $FILES
       env:
-        DD_API_KEY: ${{ inputs.api_key }}
+        DD_API_KEY_INPUT: ${{ inputs.api_key }}
         DD_SITE: ${{ inputs.site }}
         FLAGS: ${{ inputs.flags }}
         IGNORED_PATHS: ${{ inputs.ignored-paths }}
